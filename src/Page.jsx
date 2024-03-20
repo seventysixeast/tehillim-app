@@ -3,7 +3,7 @@ import {View, Text, BackHandler, Alert, Linking, LogBox} from "react-native";
 import { WebView } from 'react-native-webview';
 import SplashScreen from 'react-native-splash-screen';
 const ViewSite = () => {
-    const [generatedUrl, setGeneratedUrl] = useState("https://tehillimmp3.com/");
+    const [generatedUrl, setGeneratedUrl] = useState("https://talkingtehillim.com/");
     useEffect(()=>{
         SplashScreen.hide();
     },[])
