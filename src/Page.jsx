@@ -2,6 +2,7 @@ import React, {useEffect, useState, useRef, useContext} from "react";
 import {View, Text, BackHandler, Alert, Linking, LogBox} from "react-native";
 import { WebView } from 'react-native-webview';
 import SplashScreen from 'react-native-splash-screen';
+
 const ViewSite = () => {
     const [generatedUrl, setGeneratedUrl] = useState("https://talkingtehillim.com/");
     let webviewRef = useRef(null);
