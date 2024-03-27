@@ -1,4 +1,4 @@
-package com.tehillim
+package com.talkingtehillim
 
 import android.os.Bundle;
 import com.facebook.react.ReactActivity
