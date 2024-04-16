@@ -1,5 +1,5 @@
 import React, {useEffect, useState, useRef, useContext} from "react";
-import {Animated, View, Text, BackHandler, Alert, Image, StyleSheet} from "react-native";
+import {Animated, View, Text, BackHandler, Alert, Image, StyleSheet, Platform} from "react-native";
 import { WebView } from 'react-native-webview';
 import SplashScreen from 'react-native-splash-screen';
 
@@ -9,10 +9,6 @@ const ViewSite = () => {
     const [backinfo, setBackInfo] = useState(false);
     const [spin, setSpin] = useState(true);
     const [translateDone, setTranslateDone] = useState("flex");
-
-    useEffect(()=>{
-        SplashScreen.hide();
-    },[])
 
     useEffect(() => {
 
@@ -52,83 +48,66 @@ const ViewSite = () => {
         }),
         Animated.timing(translateY, {
           toValue: -1000, // Target Y position (adjust as needed)
-          duration: 1000, // Animation duration in milliseconds
+          duration: 1500, // Animation duration in milliseconds
         }),
       ]).start(() => {
         setTranslateDone("none")
       });
     }, []);
 
-    const imageStyle = {
-        transform: [{ translateY }], // Apply animated Y position
-        opacity: fadeValue, // Apply animated opacity
-      };
+  const imageStyle = {
+    transform: [{ translateY }], // Apply animated Y position
+    opacity: fadeValue, // Apply animated opacity
+  };
 
-      return (
-        <View style={styles.container}>
-          <View style = {styles.backgroundContainer}>
-          <WebView 
-                style={{ marginBottom: 58 }}
-                source={{ uri: generatedUrl }} 
-                ref={webviewRef}
-                allowsBackForwardNavigationGestures
-                onNavigationStateChange={(res) => {
-                    console.log("onNavigationStateChange ===>", res.url)
-                    setBackInfo(res.canGoBack)
-                }}
+  return (
+    <View style={styles.container}>
+      <View style = {styles.backgroundContainer}>
+      <WebView 
+            style={Platform.OS == "ios"?{ marginBottom: 58 }:{}}
+            source={{ uri: generatedUrl }} 
+            ref={webviewRef}
+            allowsBackForwardNavigationGestures
+            onNavigationStateChange={(res) => {
+                console.log("onNavigationStateChange ===>", res.url)
+                setBackInfo(res.canGoBack)
+            }}
 
-                TouinjectedJavaScript={
-                    `   
-                        const meta = document.querySelector('meta[name="viewport"]');
-                        meta.content = "width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0";
-                    `
-                }
-
-                //Enable Javascript support
-                javaScriptEnabled={true}
-                    
-                //For the Cache
-                domStorageEnabled={true}
-                allowFileAccess={true}
-                allowFileAccessFromFileURLs={true}
-                allowingReadAccessToURL={true}
-                mixedContentMode={'always'}
-                //Want to show the view or not
-                startInLoadingState={true}
-                onLoadStart={() => setSpin(true)}
-                onLoadEnd={(e)=> {
-                    // console.log("----------===",e)
-                    setSpin(false)
-                }}
-                // ====================================
-            />
-          </View>
-          <View style = {{...styles.overlay, display: translateDone }}>
-            <Animated.Image 
-                source={require("./assets/screen.png")} 
-                style={[styles.image, imageStyle]} 
-              />
-          </View>
-        </View>
-      )
-
-      return (
-        <View style={styles.container}>
-
-
-            
-
-            {
-              //  translateDone?
-                //<Animated.Image 
-                  //  source={require("./assets/screen.png")} 
-                    //style={[styles.image, imageStyle]} 
-                ///>
-                //:null
+            TouinjectedJavaScript={
+                `   
+                    const meta = document.querySelector('meta[name="viewport"]');
+                    meta.content = "width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0";
+                `
             }
-            
-        </View>
-      );
+
+            //Enable Javascript support
+            javaScriptEnabled={true}
+                
+            //For the Cache
+            domStorageEnabled={true}
+            allowFileAccess={true}
+            allowFileAccessFromFileURLs={true}
+            allowingReadAccessToURL={true}
+            mixedContentMode={'always'}
+            //Want to show the view or not
+            startInLoadingState={true}
+            onLoadStart={() => setSpin(true)}
+            onLoadEnd={(e)=> {
+                // console.log("----------===",e)
+                setSpin(false)
+                SplashScreen.hide();
+            }}
+            // ====================================
+        />
+      </View>
+      <View style = {{...styles.overlay, display: translateDone }}>
+        <Animated.Image 
+          source={require("./assets/screen.png")} 
+          style={[styles.image, imageStyle]} 
+        />
+      </View>
+    </View>
+  )
 
 }
 
@@ -145,6 +124,9 @@ var styles = StyleSheet.create({
     alignItems: 'center',
   },
   overlay: {
+    width: "100%",
+  },
+  image: {
     width: "100%"
   },
   logo: {
