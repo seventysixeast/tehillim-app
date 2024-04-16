@@ -1,5 +1,5 @@
 import React, {useEffect, useState, useRef, useContext} from "react";
-import {Animated, View, Text, BackHandler, Alert, Linking, LogBox, Image, StyleSheet} from "react-native";
+import {Animated, View, Text, BackHandler, Alert, Image, StyleSheet} from "react-native";
 import { WebView } from 'react-native-webview';
 import SplashScreen from 'react-native-splash-screen';
 
@@ -8,7 +8,7 @@ const ViewSite = () => {
     let webviewRef = useRef(null);
     const [backinfo, setBackInfo] = useState(false);
     const [spin, setSpin] = useState(true);
-    const [translateDone, setTranslateDone] = useState(true);
+    const [translateDone, setTranslateDone] = useState("flex");
 
     useEffect(()=>{
         SplashScreen.hide();
@@ -55,7 +55,7 @@ const ViewSite = () => {
           duration: 1000, // Animation duration in milliseconds
         }),
       ]).start(() => {
-        setTranslateDone(false)
+        setTranslateDone("none")
       });
     }, []);
 
@@ -64,13 +64,11 @@ const ViewSite = () => {
         opacity: fadeValue, // Apply animated opacity
       };
 
-
       return (
         <View style={styles.container}>
-
-
-            <WebView 
-                style={{}}
+          <View style = {styles.backgroundContainer}>
+          <WebView 
+                style={{ marginBottom: 58 }}
                 source={{ uri: generatedUrl }} 
                 ref={webviewRef}
                 allowsBackForwardNavigationGestures
@@ -104,43 +102,66 @@ const ViewSite = () => {
                 }}
                 // ====================================
             />
+          </View>
+          <View style = {{...styles.overlay, display: translateDone }}>
+            <Animated.Image 
+                source={require("./assets/screen.png")} 
+                style={[styles.image, imageStyle]} 
+              />
+          </View>
+        </View>
+      )
+
+      return (
+        <View style={styles.container}>
+
+
+            
 
             {
-                translateDone?
-                <Animated.Image 
-                    source={require("./assets/screen.png")} 
-                    style={[styles.image, imageStyle]} 
-                />:null
+              //  translateDone?
+                //<Animated.Image 
+                  //  source={require("./assets/screen.png")} 
+                    //style={[styles.image, imageStyle]} 
+                ///>
+                //:null
             }
             
         </View>
       );
 
-    return(
-        <View
-            style={{
-                flex: 1
-            }}
-        >
-
-        </View>
-    )
-
 }
 
-const styles = StyleSheet.create({
-    container: {
-        flex: 1, // Occupy full space
-        position: 'absolute', // Ensure container overlaps content
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-    },
-    image: {
-      width: "100%",
-      height: "100%",
-    },
-  });
+var styles = StyleSheet.create({
+  backgroundContainer: {
+    position: 'absolute',
+    top: 0,
+    bottom: 0,
+    left: 0,
+    right: 0,
+  },
+  container: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  overlay: {
+    width: "100%"
+  },
+  logo: {
+    backgroundColor: 'rgba(0,0,0,0)',
+    width: 160,
+    height: 52
+  },
+  backdrop: {
+    flex:1,
+    flexDirection: 'column'
+  },
+  headline: {
+    fontSize: 18,
+    textAlign: 'center',
+    backgroundColor: 'black',
+    color: 'white'
+  }
+});
 
 export default ViewSite;

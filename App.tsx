@@ -32,13 +32,9 @@ function App(): React.JSX.Element {
 
   return (
     <SafeAreaView style={backgroundStyle}>
-      <StatusBar
-        barStyle={isDarkMode ? 'light-content' : 'dark-content'}
-        backgroundColor={backgroundStyle.backgroundColor}
-      />
-      <ScrollView
+      {/*<ScrollView
         contentInsetAdjustmentBehavior="automatic"
-        style={backgroundStyle}>
+  style={backgroundStyle}>*/}
         <View
           style={{
             backgroundColor: Colors.white,
@@ -47,8 +43,8 @@ function App(): React.JSX.Element {
         }}>
           <ViewSite />
         </View>
-      </ScrollView>
-    </SafeAreaView>
+      {/*</ScrollView>*/}
+      </SafeAreaView>
   );
 }
 
