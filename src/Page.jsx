@@ -62,9 +62,11 @@ const ViewSite = () => {
 
   return (
     <View style={styles.container}>
+        {/* <Text style={{color: "red"}}>hello</Text> */}
       <View style = {styles.backgroundContainer}>
+        <Text onPress={()=> alert("hello")} style={{color: "red", width: 100, height: 100}}>hello</Text>
       <WebView 
-            style={Platform.OS == "ios"?{ marginBottom: 58 }:{}}
+            style={Platform.OS == "ios"?{ marginBottom: 58 }:{display:"flex"}}
             source={{ uri: generatedUrl }} 
             ref={webviewRef}
             allowsBackForwardNavigationGestures
