@@ -1,7 +1,9 @@
 import React, {useEffect, useState, useRef, useContext} from "react";
-import {Animated, View, Text, BackHandler, Alert, Image, StyleSheet, Platform} from "react-native";
+import {Animated, View, Text, BackHandler, Alert, Image, StyleSheet, Platform, Button} from "react-native";
 import { WebView } from 'react-native-webview';
 import SplashScreen from 'react-native-splash-screen';
+import notifee, { TimestampTrigger, TriggerType, EventType } from '@notifee/react-native';
+import TrackPlayer from 'react-native-track-player';
 
 const ViewSite = () => {
     const [generatedUrl, setGeneratedUrl] = useState("https://talkingtehillim.com/");
@@ -60,9 +62,76 @@ const ViewSite = () => {
     opacity: fadeValue, // Apply animated opacity
   };
 
+
+  // ==================================================================
+
+  const onCreateTriggerNotification = async () => {
+    // Request permissions (required for iOS)
+    await notifee.requestPermission()
+
+    // Set up the player
+    await TrackPlayer.setupPlayer();
+
+    await TrackPlayer.add({
+      id: 'local-track-1',
+      // url: "https://talkingtehillim.com/tehillim/week/4-wednesday.mp3",
+      title: 'Pure (Demo) from handler',
+      artist: 'David Chavez',
+    //  artwork: 'https://storage.googleapis.com/static.invertase.io/assets/avatars/female.png',
+      duration: 28,
+    });
+    await TrackPlayer.play();
+
+    // Create a channel (required for Android)
+    const channelId = await notifee.createChannel({
+      id: 'default',
+      name: 'Default Channel',
+    });
+
+    notifee.onForegroundEvent(async event => {
+      console.log(event.type)
+      console.log(EventType.DELIVERED)
+      console.log(event.type === EventType.DELIVERED)
+      // To Automatically play once notification is received
+      if (event.type === EventType.DELIVERED) {
+        await TrackPlayer.add({
+          id: 'local-track-1',
+          url: localTrack,
+          title: 'Pure (Demo) from handler',
+          artist: 'David Chavez',
+        //  artwork: 'https://storage.googleapis.com/static.invertase.io/assets/avatars/female.png',
+          duration: 28,
+        });
+        await TrackPlayer.play();
+      }
+        
+      // To play once action is press
+      if (event.type === EventType.ACTION_PRESS && event.detail?.pressAction?.id === 'play') {
+        // play track
+      }
+    })
+
+    // Display a notification
+    // await notifee.displayNotification({
+    //   title: 'Notification Title',
+    //   body: 'Main body content of the notification',
+    //   android: {
+    //     channelId,
+    //     // smallIcon: 'name-of-a-small-icon', // optional, defaults to 'ic_launcher'.
+    //     // pressAction is needed if you want the notification to open the app when pressed
+    //     pressAction: {
+    //       id: 'default',
+    //     },
+    //   },
+    // });
+  }
+
+  // ==================================================================
+
   return (
     <View style={styles.container}>
       <View style = {styles.backgroundContainer}>
+      <Button title="Create Trigger Notification" onPress={() => onCreateTriggerNotification()} />
       <WebView 
             style={Platform.OS == "ios"?{ marginBottom: 58 }:{display:"flex"}}
             source={{ uri: generatedUrl }} 
@@ -75,8 +144,8 @@ const ViewSite = () => {
 
             TouinjectedJavaScript={
                 `   
-                    const meta = document.querySelector('meta[name="viewport"]');
-                    meta.content = "width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0";
+                  const meta = document.querySelector('meta[name="viewport"]');
+                  meta.content = "width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0";
                 `
             }
 
