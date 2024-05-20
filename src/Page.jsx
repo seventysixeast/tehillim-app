@@ -2,16 +2,24 @@ import React, {useEffect, useState, useRef, useContext} from "react";
 import {Animated, View, Text, BackHandler, Alert, Image, StyleSheet, Platform, Button} from "react-native";
 import { WebView } from 'react-native-webview';
 import SplashScreen from 'react-native-splash-screen';
-import notifee, { TimestampTrigger, TriggerType, EventType } from '@notifee/react-native';
-import TrackPlayer from 'react-native-track-player';
+import TrackPlayer, {
+  AppKilledPlaybackBehavior,
+  Capability,
+  State
+} from 'react-native-track-player';
+
 
 const ViewSite = () => {
+  TrackPlayer.registerPlaybackService(() => require('./service'));
     const [generatedUrl, setGeneratedUrl] = useState("https://talkingtehillim.com/");
     let webviewRef = useRef(null);
     const [backinfo, setBackInfo] = useState(false);
     const [spin, setSpin] = useState(true);
     const [translateDone, setTranslateDone] = useState("flex");
 
+    const fadeValue = useRef(new Animated.Value(1)).current; // Animated value for opacity
+    const translateY = useRef(new Animated.Value(0)).current; // Animated value for Y position
+  
     useEffect(() => {
 
         const backAction = () => {
@@ -38,10 +46,6 @@ const ViewSite = () => {
         return () => backHandler.remove();
     }, [backinfo]);
 
-
-    const fadeValue = useRef(new Animated.Value(1)).current; // Animated value for opacity
-    const translateY = useRef(new Animated.Value(0)).current; // Animated value for Y position
-  
     useEffect(() => {
       Animated.parallel([ // Animate opacity and Y position simultaneously
         Animated.timing(fadeValue, {
@@ -57,6 +61,13 @@ const ViewSite = () => {
       });
     }, []);
 
+    useEffect(() => {
+      setupTrackPlayer();
+      // return () => {
+      //     TrackPlayer.destroy();
+      // };
+  }, []);
+
   const imageStyle = {
     transform: [{ translateY }], // Apply animated Y position
     opacity: fadeValue, // Apply animated opacity
@@ -65,73 +76,120 @@ const ViewSite = () => {
 
   // ==================================================================
 
-  const onCreateTriggerNotification = async () => {
-    // Request permissions (required for iOS)
-    await notifee.requestPermission()
-
-    // Set up the player
+  const setupTrackPlayer = async () => {
     await TrackPlayer.setupPlayer();
-
-    await TrackPlayer.add({
-      id: 'local-track-1',
-      // url: "https://talkingtehillim.com/tehillim/week/4-wednesday.mp3",
-      title: 'Pure (Demo) from handler',
-      artist: 'David Chavez',
-    //  artwork: 'https://storage.googleapis.com/static.invertase.io/assets/avatars/female.png',
-      duration: 28,
+    await TrackPlayer.updateOptions({
+        // stopWithApp: true,
+        android: {
+          appKilledPlaybackBehavior: AppKilledPlaybackBehavior.StopPlaybackAndRemoveNotification,
+        },
+        capabilities: [
+          Capability.Play,
+          Capability.Pause,
+          Capability.SeekTo,
+          // Capability.Stop        
+        ],
+        compactCapabilities: [
+          Capability.Play,
+          Capability.Pause,
+        ],
     });
+ 
+  TrackPlayer.addEventListener('playback-state', async (state) => {
+    if (state === State.Playing) {
+        sendMessageToWebView({ type: 'play' }, 'playback-state');
+    } else if (state === State.Paused) {
+        sendMessageToWebView({ type: 'pause' }, 'playback-state');
+    }
+});
+
+TrackPlayer.addEventListener('playback-seek-complete', async () => {
+    const currentTime = await TrackPlayer.getPosition();
+    sendMessageToWebView({ type: 'seek', currentTime }, 'playback-seek-complete');
+});
+
+TrackPlayer.addEventListener('remote-play', async () => {
     await TrackPlayer.play();
+    sendMessageToWebView({ type: 'play' }, 'remote-play');
+});
 
-    // Create a channel (required for Android)
-    const channelId = await notifee.createChannel({
-      id: 'default',
-      name: 'Default Channel',
-    });
+TrackPlayer.addEventListener('remote-pause', async () => {
+    await TrackPlayer.pause();
+    sendMessageToWebView({ type: 'pause' }, 'remote-pause');
+});
 
-    notifee.onForegroundEvent(async event => {
-      console.log(event.type)
-      console.log(EventType.DELIVERED)
-      console.log(event.type === EventType.DELIVERED)
-      // To Automatically play once notification is received
-      if (event.type === EventType.DELIVERED) {
-        await TrackPlayer.add({
-          id: 'local-track-1',
-          url: localTrack,
-          title: 'Pure (Demo) from handler',
-          artist: 'David Chavez',
-        //  artwork: 'https://storage.googleapis.com/static.invertase.io/assets/avatars/female.png',
-          duration: 28,
-        });
-        await TrackPlayer.play();
-      }
-        
-      // To play once action is press
-      if (event.type === EventType.ACTION_PRESS && event.detail?.pressAction?.id === 'play') {
-        // play track
-      }
+TrackPlayer.addEventListener('remote-seek', async ({ position }) => {
+    await TrackPlayer.pause();
+    await TrackPlayer.seekTo(position);
+    // await TrackPlayer.setVolume(0);
+    sendMessageToWebView({ type: 'seek', currentTime: position }, 'remote-seek');
+    // await TrackPlayer.play();
+});
+
+TrackPlayer.addEventListener('remote-stop', async () => {
+    await TrackPlayer.stop();
+    sendMessageToWebView({ type: 'stop' }, 'remote-stop');
+});
+};
+
+const sendMessageToWebView = (message, fromWhere) => {
+  console.log("from where ", fromWhere)
+  if (webviewRef.current) {
+      webviewRef.current.injectJavaScript(`
+          (function() {
+            window.postMessage('${JSON.stringify(message)}', '*');
+          })();
+      `);
+  }
+};
+
+const playAudio = async (event) => {
+  const message = JSON.parse(event.nativeEvent.data);
+  if(message.type === "loadData"){
+    
+    await TrackPlayer.stop();
+    await TrackPlayer.reset();
+    await TrackPlayer.setVolume(0);
+    delete message.type
+    await TrackPlayer.add(message).then(res => {
+      console.log("now try to play ");
     })
+    // await TrackPlayer.play();
+    sendMessageToWebView({ type: 'play' }, 'play');
+  } else if (message.type === 'play') {
+    TrackPlayer.play();
+    sendMessageToWebView({ type: 'play' }, 'play');
+  } else if (message.type === 'pause') {
 
-    // Display a notification
-    // await notifee.displayNotification({
-    //   title: 'Notification Title',
-    //   body: 'Main body content of the notification',
-    //   android: {
-    //     channelId,
-    //     // smallIcon: 'name-of-a-small-icon', // optional, defaults to 'ic_launcher'.
-    //     // pressAction is needed if you want the notification to open the app when pressed
-    //     pressAction: {
-    //       id: 'default',
-    //     },
-    //   },
-    // });
+    console.log(message.currentTime)
+    console.log(message.type)
+    console.log(message.currentTime > 2)
+
+    if(message.currentTime > 2){
+      console.log(message.type)
+      TrackPlayer.pause();
+      sendMessageToWebView({ type: 'pause' }, 'remote-pause');  
+    } else {
+      TrackPlayer.play();
+      sendMessageToWebView({ type: 'play' }, 'play');
+    }
+
+  } else if (message.type === 'seeking') {
+    // await TrackPlayer.pause();
+    await TrackPlayer.seekTo(message.currentTime);
+    // await TrackPlayer.play();
+  } else if(message.type === "stop") {
+    await TrackPlayer.stop();
+    await TrackPlayer.reset();
   }
 
-  // ==================================================================
+};
 
+
+  // ==================================================================
   return (
     <View style={styles.container}>
       <View style = {styles.backgroundContainer}>
-      <Button title="Create Trigger Notification" onPress={() => onCreateTriggerNotification()} />
       <WebView 
             style={Platform.OS == "ios"?{ marginBottom: 58 }:{display:"flex"}}
             source={{ uri: generatedUrl }} 
@@ -146,8 +204,16 @@ const ViewSite = () => {
                 `   
                   const meta = document.querySelector('meta[name="viewport"]');
                   meta.content = "width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0";
+                  // document.getElementById('audplayerid').autoplay = false;
                 `
             }
+
+            // Get web response
+            onMessage={(event)=>{
+                console.log(event.nativeEvent.data)
+                
+                playAudio(event)
+            }}
 
             //Enable Javascript support
             javaScriptEnabled={true}
